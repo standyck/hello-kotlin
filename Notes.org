@@ -1,0 +1,368 @@
+#+OPTIONS: html-link-use-abs-url:nil html-postamble:auto html-preamble:t html-scripts:t
+#+OPTIONS: html-style:t html5-fancy:nil tex:t
+#+HTML_DOCTYPE: xhtml-strict
+#+HTML_CONTAINER: div
+#+DESCRIPTION: My wingding notes for our Kotlin iteration
+#+KEYWORDS:
+#+HTML_LINK_HOME:
+#+HTML_LINK_UP:
+#+HTML_MATHJAX:
+#+HTML_HEAD:
+#+HTML_HEAD_EXTRA:
+#+TITLE: Wingdings Kotlin Notes
+#+SUBTITLE:
+#+INFOJS_OPT:
+#+CREATOR: <a href="https://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 9.1.1)
+#+LATEX_HEADER:
+#+SETUPFILE: ../../theme-readtheorg.setup
+
+This is a windings iteration covering the [[https://kotlinlang.org][Kotlin progamming language]]. This iteration
+started in September 2017 and will probably run to the end of the year.
+
+I am using emacs [[https://github.com/Emacs-Kotlin-Mode-Maintainers/kotlin-mode][kotlin-mode]] and [[https://github.com/zweifisch/ob-kotlin][ob-kotlin]] for code evalution though I have been unable to
+get it to evaluate kotlin code in this file without hanging.
+
+Here are the emacs key bindings for kotlin-mode
+
+| Key     | Function                        |
+|---------+---------------------------------|
+| C-c C-z | Start REPL                      |
+| C-c C-n | Send current line to REPL       |
+| C-c C-r | Send selected region to REPL    |
+| C-c C-c | Send current code block to REPL |
+| C-c C-b | Send whole buffer to REPL       |
+
+* Session 1
+  I didn't start these notes until the end of session 2.
+* Session 2
+
+  #+BEGIN_SRC kotlin :tangle foo.kt
+    interface Foo {
+       val count: Int
+    }
+
+    class Bar1(override val count: Int) : Foo
+
+    class Bar2 : Foo {
+       override var count: Int = 0
+    }
+  #+END_SRC
+
+  We end things after the Extensions section
+
+* Session 3
+   Covers the remains of "Classes and Objects" from [[https://kotlinlang.org/docs/reference/data-classes.html][Data Classes]] through [[https://kotlinlang.org/docs/reference/delegated-properties.html][Delegated
+   Properties]]. It was on October 25 and was moderated by Terry.
+
+** Data Classes
+
+   - Note taken on [2017-10-25 Wed 19:15] \\
+     Eric suggested that you would need the =componentN= functions to implement
+     destructuring. This seems right.
+
+    This is a data class. It's like a c =struct= I guess.
+    #+BEGIN_SRC kotlin :tangle src/session3/DataClass.kt
+      data class User(val name: String, val age: Int)
+
+      fun main(args: Array<String>) {
+         val u = User("Stan", 19)
+         println(u)
+      }
+    #+END_SRC
+
+    You get =toString()=, =equals()= and =hashCode()= for free. Similar to =defrecord= in
+    clojure I guess.
+
+    #+BEGIN_SRC clojure :tangle src/session3/defrec.clj
+      (defrecord User [name age])
+
+      (def u (->User "Stan" 19))
+      ;; or
+      (def u (map->User {:name "Stan" :age 19}))
+
+      (println u)
+    #+END_SRC
+
+    I don't understand the purpose of the =componentN()= functions. I can't think if a
+    reason you'd need them. If you know the position of an argument, you almost certainly
+    also know it's name (e.g. =foo.field('fieldname')=, ala python). Otherwise, you just
+    want a comprehension of the fields (e.g. =foreach(foo.fields) {...}=). Maybe there is
+    some obscure case for this I'm not aware of.
+
+
+** Sealed Classes
+    These are like =enum= classes in java? but you can have multiple instances.
+
+    #+BEGIN_SRC kotlin
+      sealed class Expr
+      data class Const(val number: Double) : Expr()
+      data class Sum(val e1: Expr, val e2: Expr) : Expr()
+      object NotANumber : Expr()
+
+    #+END_SRC
+
+    I'm not sure how this is like an enum. It seems more like a marker interface (like
+    java's =Serializable=).
+
+** Generics
+    Kotlin infers generic parameters if possible:
+
+    #+BEGIN_SRC kotlin
+      class Box<T>(t: T) {
+              var value = t
+      }
+
+      val box = Box(1)
+
+      // It knows that the 1 is an Int
+    #+END_SRC
+
+    I've never been completely convinced of the value of generics especially as it relates
+    to inheritance relationships. As a result, this section kind of flows over my head a
+    bit. You have "declaration-site variance." Great!
+
+*** DONE Come back to this section
+    CLOSED: [2017-10-25 Wed 19:24]
+    SCHEDULED: <2017-10-25 Wed>
+
+    - Note taken on [2017-10-25 Wed 19:44] \\
+      Or not
+** Nested Classes
+
+    You can declare an inner class with =inner= but you don't have to.
+
+    #+BEGIN_SRC kotlin
+      class Outer {
+              private val bar: Int = 1
+              class Nested {
+                      fun foo() = 2
+              }
+      }
+
+      class Outer {
+              private val bar: Int = 1
+              inner class Nested {
+                      fun foo() = bar
+              }
+      }
+    #+END_SRC
+
+    What's the difference? Do I need to declare =inner= to get access to =bar= from
+    =Nested=?
+
+** Enum Classes
+
+    Ok, these look more like java enums.
+    #+BEGIN_SRC kotlin
+      enum class ProtocolState {
+              WAITING {
+                      override fun signal() = TALKING
+              },
+              TALKING {
+                      override fun signal() = WAITING
+              };
+
+              abstract fun signal(): ProtocolState
+      }
+    #+END_SRC
+
+    This is an enum with an anonymous class to implement a function =signal()=.
+
+** Object Expressions and Declarations
+    You can create an object in a local context as sort of a convenience measure
+
+    #+BEGIN_SRC kotlin
+      fun foo() {
+              val adHoc = object {
+                      var x: Int = 0
+                      var y: Int = 0
+              }
+              print(adHoc.x + adHoc.y)
+      }
+    #+END_SRC
+
+
+    Again, I'm not sure what is gained by this other than added complexity in the
+    language.
+
+    Object declarations are kotlin's way of doing singeltons.
+
+    #+BEGIN_SRC kotlin
+      object DataProviderManager {
+              fun registerDataProvider(provider: DataProvider) {
+                      //...
+              }
+
+              val allDataProviders: Collection<DataProvider>
+              get() = //...
+      }
+
+      //refer to it like a static class...
+
+      DataProviderManager.registerDataProvider(...)
+    #+END_SRC
+
+    You can also have an object declaration inside a class marked as =companion= which
+    sort of works like static methods.
+
+    #+BEGIN_SRC kotlin
+      class MyClass {
+              companion object Factory {
+                      fun create(): MyClass = MyClass()
+              }
+      }
+
+
+      //so I can say...
+
+      val x = MyClass.create()
+    #+END_SRC
+* Session 4
+  This will be on November 8 and will be moderated by me.
+** [[https://kotlinlang.org/docs/reference/delegation.html][Class Delegation]]
+   This is kind of cool. If you use the =by membervar= keyword you can delegate the
+   methods in =membervar=
+
+   #+BEGIN_SRC kotlin :tangle src/session4/Delegation.kt
+     interface Base {
+        fun print()
+     }
+
+     class BaseImpl(val x: Int) : Base {
+        override fun print() { print(x) }
+     }
+
+     class Derived(b: Base) : Base by b
+
+
+     fun main(args: Array<String>) {
+        val b = BaseImpl(10)
+        Derived(b).print()
+     }
+
+   #+END_SRC
+** [[https://kotlinlang.org/docs/reference/delegated-properties.html][Delegated Properties]]
+   This is a standardized way to enhance properties to give them shareable aspects. There
+   are a few standard such delegates.
+
+   - lazy() - Implements memoization of values (I think?)
+
+     #+BEGIN_SRC kotlin :tangle src/session4/lazy.kt
+       val lazyValue: String by lazy {
+          println("computing...")
+          "Hello"
+       }
+
+       fun main(args: Array<String>) {
+          println(lazyValue)
+          println(lazyValue)
+       }
+
+       //prints out the "computing..." the first time only.
+     #+END_SRC
+
+   - observable() - Allows you to pass a handler function to property that gets called
+     after it is assigned.
+     #+BEGIN_SRC kotlin :tangle src/session4/Observable.kt
+       import kotlin.properties.Delegates
+       class DUser {
+          var name: String by Delegates.observable("<no name>") {
+             prop, old, new ->
+             println("I'll be changing $old to $new")
+          }
+       }
+
+       fun main(args: Array<String>) {
+          val user = DUser()
+          user.name = "first"
+          user.name = "second"
+       }
+
+     #+END_SRC
+
+   - vetoable() - Same as observable but this runs before the assignment.
+
+   - map() - Allows you to store properties in a map structure. This is good for
+     marshalling/unmarshalling between kotlin objects and JSON.
+
+     #+BEGIN_SRC kotlin :tangle src/session4/MapStore.kt
+       class MUser(val map: Map<String, Any>) {
+          val name: String by map
+          val age: Int     by map
+       }
+
+       fun main(args: Array<String>) {
+          val user = MUser(mapOf(
+                "name" to "Johnny Foo",
+                "age"  to 25
+          ))
+
+          println(user.name)
+          println(user.age)
+       }
+     #+END_SRC
+** [[https://kotlinlang.org/docs/reference/functions.html][Functions]]
+   Functions are first class things in Kotlin.
+
+   #+BEGIN_QUOTE
+   When a function is called with both positional and named arguments, all the positional
+   arguments should be placed before the first named one. For example, the call =f(1, y
+   = 2)= is allowed, but =f(x = 1, 2)= is not.
+   #+END_QUOTE
+
+   There is an =infix= keyword that allows you to use a function call beteen its
+   arguments.
+
+   Tail recursion is allowed with a =tailrec= keyword. I'm not sure why you need the
+   keyword. Wouldn't the compiler be able to figure this out?
+
+** [[https://kotlinlang.org/docs/reference/lambdas.html][Lambdas]]
+   Functions that take functions as arguments or return functions.
+
+   #+BEGIN_SRC kotlin
+     fun <T> lock(lock: Lock, body: () -> T): T {
+        lock.lock()
+        try {
+           return body()
+        } finally {
+           lock.unlock()
+        }
+     }
+   #+END_SRC
+
+   This is a function that takes a parameter =body= that is itself a function. It is a
+   function that has no arguments and returns a =T=. It can be a function reference or a
+   lambda expression (inside curly braces).
+
+   There are many shortcut ways of expressing functions that take functions as
+   parameters. (too many?)
+
+
+   Function literals with receivers allow you to call a function with a receiver object.
+
+   #+BEGIN_SRC kotlin
+     val sum = fun Int.(other: Int): Int = this + other
+
+     // can be called like this
+
+     100.sum(200)
+
+     //300
+   #+END_SRC
+
+** [[https://kotlinlang.org/docs/reference/inline-functions.html][Inline Functions]]
+   You can inline stuff if you want. (Shouldn't the compiler figure this shit out?)
+
+   We can also =noinline= sections that have been inlined. You can also =crossinline= a
+   function parameter if it is coming in from an object or an inner function in a nested
+   function. (Good grief!)
+
+** [[https://kotlinlang.org/docs/reference/coroutines.html][Coroutines]]
+   An experimental feature of kotlin 1.1.
+
+   A means by which you can avoid blocking on long operations. A suspended function is
+   marked with the keyword =suspend=. A suspended function can only be called by another
+   suspended function or coroutine. Normally this is started by supplying a suspend lambda
+   in a function call.
+
+   Coroutines are implemented as a [[https://en.wikipedia.org/wiki/Continuation-passing_style][continuation]].
